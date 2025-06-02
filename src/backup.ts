@@ -59,7 +59,7 @@ const dumpToFile = async (filePath: string, filename: string) => {
   console.log("Dumping convex backup to file...");
 
   await new Promise((resolve, reject) => {
-    exec(`npx convex export --path ${filePath}.zip`, (error, stdout, stderr) => {
+    exec(`npx convex export --path ${filePath}`, (error, stdout, stderr) => {
       if (error) {
         reject({ error: error, stderr: stderr.trimEnd() });
         return;
@@ -109,7 +109,7 @@ export const backup = async () => {
 
   const date = new Date().toISOString();
   const timestamp = date.replace(/[:.]+/g, '-');
-  const filename = `${env.BACKUP_FILE_PREFIX}-${timestamp}`;
+  const filename = `${env.BACKUP_FILE_PREFIX}-${timestamp}.zip`;
   const filepath = path.join(os.tmpdir(), filename);
 
   await dumpToFile(filepath, filename);
