@@ -44,9 +44,4 @@ export const env = envsafe({
     desc: 'Enables support for buckets with object lock by providing an MD5 hash with the backup file',
     default: false
   }),
-  BACKUP_OPTIONS: str({
-    desc: 'Any valid pg_dump option.',
-    default: '',
-    allowEmpty: true,
-  }),
 })
