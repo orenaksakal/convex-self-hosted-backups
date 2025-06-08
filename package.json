@@ -1,14 +1,14 @@
 {
-  "name": "railway-pg-s3-backup",
+  "name": "convex-self-hosted-backups",
   "version": "0.0.1",
-  "description": "A simple Node app to backup PostgreSQL databases to an S3 bucket",
+  "description": "A simple Node app to backup Convex databases and files to an S3 bucket",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "start": "node dist/index.js",
     "build": "tsc"
   },
-  "author": "Faraz Patankar",
+  "author": "Oren Aksakal",
   "license": "MIT",
   "devDependencies": {
     "@types/cron": "^2.0.1",
