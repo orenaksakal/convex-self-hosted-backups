@@ -1,5 +1,8 @@
 
 # Convex Backups
+Backup script for backing up self hosted convex instances, 
+includes file storage and whole database backup via `npx convex export` and uploads it to s3 supported storage
+backups are importable to cloud or any selfhosted instance via `npx convex import`.
 
 
 ## ENV VARS
