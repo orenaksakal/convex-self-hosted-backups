@@ -1,6 +1,9 @@
 import { envsafe, str, bool } from "envsafe";
 
 export const env = envsafe({
+  CONVEX_SELF_HOSTED_ADMIN_KEY: str(),
+  CONVEX_SELF_HOSTED_URL: str(),
+  CONVEX_URL: str(),
   AWS_ACCESS_KEY_ID: str(),
   AWS_SECRET_ACCESS_KEY: str(),
   AWS_S3_BUCKET: str(),
