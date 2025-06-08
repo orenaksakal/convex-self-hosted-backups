@@ -7,6 +7,12 @@ backups are importable to cloud or any selfhosted instance via `npx convex impor
 
 ## ENV VARS
 
+- `CONVEX_SELF_HOSTED_ADMIN_KEY` - Your self hosted instance's admin key.
+
+- `CONVEX_SELF_HOSTED_URL` - Your self hosted instance's url (api).
+
+- `CONVEX_URL` - Your selfhosted instance's url (api).
+
 - `AWS_ACCESS_KEY_ID` - AWS access key ID.
 
 - `AWS_SECRET_ACCESS_KEY` - AWS secret access key, sometimes also called an application key.
