@@ -59,7 +59,8 @@ const dumpToFile = async (filePath: string, filename: string) => {
   console.log("Dumping convex backup to file...");
 
   await new Promise((resolve, reject) => {
-    exec(`npx convex export --path ${filePath} --include-file-storage`, (error, stdout, stderr) => {
+    const cmd = `npx convex export --path ${filePath}${env.INCLUDE_FILE_STORAGE ? ' --include-file-storage' : ''}`;
+    exec(cmd, (error, stdout, stderr) => {
       if (error) {
         reject({ error: error, stderr: stderr.trimEnd() });
         return;

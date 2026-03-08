@@ -42,6 +42,10 @@ export const env = envsafe({
     default: false,
     allowEmpty: true,
   }),
+  INCLUDE_FILE_STORAGE: bool({
+    desc: 'Include file storage in the backup export',
+    default: false,
+  }),
   // This is both time consuming and resource intensive so we leave it disabled by default
   SUPPORT_OBJECT_LOCK: bool({
     desc: 'Enables support for buckets with object lock by providing an MD5 hash with the backup file',
