@@ -1,22 +1,45 @@
 import { CronJob } from "cron";
 import { backup } from "./backup.js";
-import { env } from "./env.js";
+import { cleanupVolume } from "./cleanup.js";
+import { env, parseBackends, getEnabledFrequencies, BackupFrequency, BackendConfig } from "./env.js";
+import { sendFailureNotification } from "./notify.js";
 
 console.log("NodeJS Version: " + process.version);
 
-const tryBackup = async () => {
-  try {
-    await backup();
-  } catch (error) {
-    console.error("Error while running backup: ", error);
-    process.exit(1);
+const backends = parseBackends();
+const frequencies = getEnabledFrequencies();
+
+console.log(`Configured ${backends.length} backend(s): ${backends.map(b => b.name).join(", ")}`);
+console.log(`Enabled frequencies: ${frequencies.map(f => `${f.frequency} (${f.schedule})`).join(", ")}`);
+
+const runBackupCycle = async (frequency: BackupFrequency) => {
+  for (const backend of backends) {
+    try {
+      await backup(backend, frequency);
+    } catch (error) {
+      const msg = `Backup failed for "${backend.name}" (${frequency}): ${error instanceof Error ? error.message : String(error)}`;
+      console.error(msg, error);
+      await sendFailureNotification(msg);
+      process.exit(1);
+    }
   }
-}
+
+  if (env.CLEANUP_PATH) {
+    try {
+      cleanupVolume(env.CLEANUP_PATH);
+    } catch (error) {
+      console.error("Error during volume cleanup:", error);
+    }
+  }
+};
 
 if (env.RUN_ON_STARTUP || env.SINGLE_SHOT_MODE) {
   console.log("Running on start backup...");
 
-  await tryBackup();
+  // On startup / single-shot, run all enabled frequencies
+  for (const { frequency } of frequencies) {
+    await runBackupCycle(frequency);
+  }
 
   if (env.SINGLE_SHOT_MODE) {
     console.log("Database backup complete, exiting...");
@@ -24,10 +47,13 @@ if (env.RUN_ON_STARTUP || env.SINGLE_SHOT_MODE) {
   }
 }
 
-const job = new CronJob(env.BACKUP_CRON_SCHEDULE, async () => {
-  await tryBackup();
-});
+for (const { frequency, schedule } of frequencies) {
+  const job = new CronJob(schedule, async () => {
+    await runBackupCycle(frequency);
+  });
 
-job.start();
+  job.start();
+  console.log(`Scheduled ${frequency} backup: ${schedule}`);
+}
 
-console.log("Backup cron scheduled...");
+console.log("All backup crons scheduled.");
