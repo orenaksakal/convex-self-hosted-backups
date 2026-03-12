@@ -1,7 +1,6 @@
 import { CronJob } from "cron";
-import { exec } from "child_process";
 import { backup } from "./backup.js";
-import { env, parseBackends, BACKUP_SCHEDULES, BackupFrequency, BackendConfig } from "./env.js";
+import { env, parseBackends, BACKUP_SCHEDULES, BackupFrequency } from "./env.js";
 import { sendFailureNotification } from "./notify.js";
 
 console.log("NodeJS Version: " + process.version);
@@ -21,33 +20,7 @@ const runBackupCycle = async (frequency: BackupFrequency) => {
       await sendFailureNotification(msg);
       process.exit(1);
     }
-
-    await cleanExports(backend);
   }
-};
-
-const cleanExports = async (backend: BackendConfig) => {
-  if (!backend.dockerContainer) {
-    console.log(`No dockerContainer configured for "${backend.name}", skipping export cleanup.`);
-    return;
-  }
-
-  const containerId = backend.dockerContainer;
-  const exportsPath = "/data/storage/exports";
-  const cmd = `docker exec ${containerId} sh -c 'rm -f ${exportsPath}/*'`;
-
-  console.log(`Cleaning exports for "${backend.name}" via docker exec...`);
-
-  await new Promise<void>((resolve) => {
-    exec(cmd, (error, _stdout, stderr) => {
-      if (error) {
-        console.error(`Error cleaning exports for "${backend.name}":`, stderr || error.message);
-      } else {
-        console.log(`Export cleanup complete for "${backend.name}".`);
-      }
-      resolve();
-    });
-  });
 };
 
 if (env.RUN_ON_STARTUP || env.SINGLE_SHOT_MODE) {

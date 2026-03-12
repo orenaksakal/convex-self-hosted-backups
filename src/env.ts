@@ -15,9 +15,9 @@ export const env = envsafe({
     allowEmpty: true,
   }),
 
-  // Multi-backend config: "name1::url1::adminKey1::dockerContainer1,name2::url2::adminKey2::dockerContainer2"
+  // Multi-backend config: "name1::url1::adminKey1,name2::url2::adminKey2"
   CONVEX_BACKENDS: str({
-    desc: 'Comma-separated backend configs: name::url::adminKey::dockerContainer (dockerContainer optional)',
+    desc: 'Comma-separated backend configs: name::url::adminKey',
     default: '',
     allowEmpty: true,
   }),
@@ -93,7 +93,6 @@ export type BackendConfig = {
   name: string;
   url: string;
   adminKey: string;
-  dockerContainer?: string;
 };
 
 
@@ -103,14 +102,13 @@ export function parseBackends(): BackendConfig[] {
   if (env.CONVEX_BACKENDS) {
     return env.CONVEX_BACKENDS.split(',').map(entry => {
       const parts = entry.trim().split('::');
-      if (parts.length < 3 || parts.length > 4) {
-        throw new Error(`Invalid CONVEX_BACKENDS entry: "${entry}". Expected format: name::url::adminKey::dockerContainer`);
+      if (parts.length !== 3) {
+        throw new Error(`Invalid CONVEX_BACKENDS entry: "${entry}". Expected format: name::url::adminKey`);
       }
       return {
         name: parts[0],
         url: parts[1],
         adminKey: parts[2],
-        dockerContainer: parts[3] || undefined,
       };
     });
   }
