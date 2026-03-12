@@ -142,7 +142,7 @@ const dumpToFile = async (
       },
       (error, stdout, stderr) => {
         if (error) {
-          reject({ error: error, stderr: stderr.trimEnd() });
+          reject(new Error(stderr.trimEnd() || error.message));
           return;
         }
 
