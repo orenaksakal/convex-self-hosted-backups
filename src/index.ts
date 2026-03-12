@@ -1,16 +1,14 @@
 import { CronJob } from "cron";
 import { backup } from "./backup.js";
-import { cleanupVolume } from "./cleanup.js";
-import { env, parseBackends, getEnabledFrequencies, BackupFrequency, BackendConfig } from "./env.js";
+import { env, parseBackends, BACKUP_SCHEDULES, BackupFrequency } from "./env.js";
 import { sendFailureNotification } from "./notify.js";
 
 console.log("NodeJS Version: " + process.version);
 
 const backends = parseBackends();
-const frequencies = getEnabledFrequencies();
 
 console.log(`Configured ${backends.length} backend(s): ${backends.map(b => b.name).join(", ")}`);
-console.log(`Enabled frequencies: ${frequencies.map(f => `${f.frequency} (${f.schedule})`).join(", ")}`);
+console.log(`Backup frequencies: ${BACKUP_SCHEDULES.map(f => `${f.frequency} (${f.schedule})`).join(", ")}`);
 
 const runBackupCycle = async (frequency: BackupFrequency) => {
   for (const backend of backends) {
@@ -23,21 +21,13 @@ const runBackupCycle = async (frequency: BackupFrequency) => {
       process.exit(1);
     }
   }
-
-  if (env.CLEANUP_PATH) {
-    try {
-      cleanupVolume(env.CLEANUP_PATH);
-    } catch (error) {
-      console.error("Error during volume cleanup:", error);
-    }
-  }
 };
 
 if (env.RUN_ON_STARTUP || env.SINGLE_SHOT_MODE) {
   console.log("Running on start backup...");
 
-  // On startup / single-shot, run all enabled frequencies
-  for (const { frequency } of frequencies) {
+  // On startup / single-shot, run all frequencies
+  for (const { frequency } of BACKUP_SCHEDULES) {
     await runBackupCycle(frequency);
   }
 
@@ -47,7 +37,7 @@ if (env.RUN_ON_STARTUP || env.SINGLE_SHOT_MODE) {
   }
 }
 
-for (const { frequency, schedule } of frequencies) {
+for (const { frequency, schedule } of BACKUP_SCHEDULES) {
   const job = new CronJob(schedule, async () => {
     await runBackupCycle(frequency);
   });

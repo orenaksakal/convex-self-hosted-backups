@@ -6,7 +6,7 @@ Backup script for self-hosted Convex instances. Exports your database (and optio
 ## Features
 
 - **Multi-backend support** — back up multiple Convex instances in a single deployment
-- **Multiple backup frequencies** — hourly, daily, weekly, and monthly schedules with independent retention
+- **Multiple backup frequencies** — automatic hourly, daily, weekly, and monthly schedules with configurable retention
 - **S3-compatible storage** — works with AWS S3, Cloudflare R2, Backblaze B2, MinIO, etc.
 - **File storage backups** — optionally include Convex file storage in exports
 - **Automatic retention** — old backups are pruned per frequency
@@ -21,10 +21,18 @@ You can configure a single backend using legacy env vars, or multiple backends u
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `CONVEX_BACKENDS` | No | | Comma-separated backend configs: `name\|url\|adminKey,name2\|url2\|adminKey2`. Takes priority over legacy vars. |
+| `CONVEX_BACKENDS` | No | | Comma-separated backend configs (see format below). Takes priority over legacy vars. |
 | `CONVEX_SELF_HOSTED_ADMIN_KEY` | No* | | Admin key for your self-hosted instance. *Required if `CONVEX_BACKENDS` is not set. |
 | `CONVEX_SELF_HOSTED_URL` | No* | | API URL for your self-hosted instance. *Required if `CONVEX_BACKENDS` is not set. |
 | `CONVEX_URL` | No | | Alternative Convex URL. |
+
+**`CONVEX_BACKENDS` format:** `name|url|adminKey` per backend, comma-separated for multiple. The `name` is used as the S3 folder for that backend's backups.
+
+```
+CONVEX_BACKENDS=my-app|https://my-app.convex.cloud|adminKey1,my-blog|https://my-blog.convex.cloud|adminKey2
+```
+
+For single-backend setups using legacy env vars, the folder name defaults to `BACKUP_FILE_PREFIX` (which defaults to `backup`).
 
 ### S3 Storage
 
@@ -39,15 +47,14 @@ You can configure a single backend using legacy env vars, or multiple backends u
 
 ### Backup Schedules
 
-Configure one or more backup frequencies using cron expressions. Leave empty to disable a frequency.
+Backups run automatically on fixed schedules:
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `BACKUP_CRON_SCHEDULE` | No | `0 5 * * *` | Legacy cron schedule. Maps to daily if `BACKUP_DAILY_SCHEDULE` is not set. |
-| `BACKUP_HOURLY_SCHEDULE` | No | | Cron schedule for hourly backups. |
-| `BACKUP_DAILY_SCHEDULE` | No | | Cron schedule for daily backups. Falls back to `BACKUP_CRON_SCHEDULE`. |
-| `BACKUP_WEEKLY_SCHEDULE` | No | | Cron schedule for weekly backups. |
-| `BACKUP_MONTHLY_SCHEDULE` | No | | Cron schedule for monthly backups. |
+| Frequency | Schedule |
+|---|---|
+| Hourly | Every hour at :00 |
+| Daily | Every day at midnight |
+| Weekly | Every Sunday at midnight |
+| Monthly | 1st of every month at midnight |
 
 ### Retention Limits
 
@@ -70,7 +77,7 @@ Maximum number of backups to keep per frequency. Oldest backups are deleted firs
 | `SUPPORT_OBJECT_LOCK` | No | `false` | Enable MD5 hashing for buckets with object lock. |
 | `RUN_ON_STARTUP` | No | `false` | Run a backup immediately on startup, then continue on schedule. |
 | `SINGLE_SHOT_MODE` | No | `false` | Run a single backup and exit. Useful with external cron schedulers. |
-| `CLEANUP_PATH` | No | | Path to clean up after each backup cycle (deletes files in the directory). |
+
 
 ### Notifications
 
@@ -95,16 +102,15 @@ Shoutrrr supports many other services (Discord, Slack, email, etc.) — see the 
 
 ## Multi-Backend Example
 
-Back up two Convex instances with daily and weekly schedules:
+Back up two Convex instances with custom retention:
 
 ```env
-CONVEX_BACKENDS=production|https://prod.convex.cloud|prodAdminKey,staging|https://staging.convex.cloud|stagingAdminKey
+CONVEX_BACKENDS=my-app|https://my-app.convex.cloud|appAdminKey,my-blog|https://my-blog.convex.cloud|blogAdminKey
 
-BACKUP_DAILY_SCHEDULE=0 5 * * *
-BACKUP_WEEKLY_SCHEDULE=0 6 * * 0
-
-MAX_DAILY_BACKUPS=7
-MAX_WEEKLY_BACKUPS=4
+MAX_HOURLY_BACKUPS=48
+MAX_DAILY_BACKUPS=14
+MAX_WEEKLY_BACKUPS=8
+MAX_MONTHLY_BACKUPS=24
 
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
@@ -114,17 +120,25 @@ AWS_S3_REGION=us-east-1
 SHOUTRRR_URL=telegram://bottoken@telegram?chats=chatid
 ```
 
-This creates the following S3 structure:
+This creates the following S3 structure (one folder per backend name):
 ```
 my-backups/
-  production/
-    daily/
+  my-app/
+    hourly/
       backup-2024-01-01T05-00-00-000Z.zip
-    weekly/
-      backup-2024-01-07T06-00-00-000Z.zip
-  staging/
     daily/
-      backup-2024-01-01T05-00-00-000Z.zip
+      backup-2024-01-01T00-00-00-000Z.zip
     weekly/
-      backup-2024-01-07T06-00-00-000Z.zip
+      backup-2024-01-07T00-00-00-000Z.zip
+    monthly/
+      backup-2024-02-01T00-00-00-000Z.zip
+  my-blog/
+    hourly/
+      backup-2024-01-01T05-00-00-000Z.zip
+    daily/
+      backup-2024-01-01T00-00-00-000Z.zip
+    weekly/
+      backup-2024-01-07T00-00-00-000Z.zip
+    monthly/
+      backup-2024-02-01T00-00-00-000Z.zip
 ```

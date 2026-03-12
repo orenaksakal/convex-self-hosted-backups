@@ -27,35 +27,6 @@ export const env = envsafe({
   AWS_S3_BUCKET: str(),
   AWS_S3_REGION: str(),
 
-  // Legacy cron schedule (maps to BACKUP_DAILY_SCHEDULE if that is not set)
-  BACKUP_CRON_SCHEDULE: str({
-    desc: 'Legacy cron schedule, maps to BACKUP_DAILY_SCHEDULE for backward compatibility.',
-    default: '0 5 * * *',
-    allowEmpty: true,
-  }),
-
-  // Frequency-specific cron schedules (empty = disabled)
-  BACKUP_HOURLY_SCHEDULE: str({
-    desc: 'Cron schedule for hourly backups.',
-    default: '',
-    allowEmpty: true,
-  }),
-  BACKUP_DAILY_SCHEDULE: str({
-    desc: 'Cron schedule for daily backups. Falls back to BACKUP_CRON_SCHEDULE.',
-    default: '',
-    allowEmpty: true,
-  }),
-  BACKUP_WEEKLY_SCHEDULE: str({
-    desc: 'Cron schedule for weekly backups.',
-    default: '',
-    allowEmpty: true,
-  }),
-  BACKUP_MONTHLY_SCHEDULE: str({
-    desc: 'Cron schedule for monthly backups.',
-    default: '',
-    allowEmpty: true,
-  }),
-
   // Retention limits per frequency
   MAX_HOURLY_BACKUPS: num({
     desc: 'Maximum number of hourly backups to keep.',
@@ -72,13 +43,6 @@ export const env = envsafe({
   MAX_MONTHLY_BACKUPS: num({
     desc: 'Maximum number of monthly backups to keep.',
     default: 12,
-  }),
-
-  // Volume cleanup
-  CLEANUP_PATH: str({
-    desc: 'Path to clean up after each backup cycle. Empty = disabled.',
-    default: '',
-    allowEmpty: true,
   }),
 
   AWS_S3_ENDPOINT: str({
@@ -156,28 +120,13 @@ export function parseBackends(): BackendConfig[] {
   }];
 }
 
-export function getEnabledFrequencies(): { frequency: BackupFrequency; schedule: string }[] {
-  const frequencies: { frequency: BackupFrequency; schedule: string }[] = [];
-
-  if (env.BACKUP_HOURLY_SCHEDULE) {
-    frequencies.push({ frequency: 'hourly', schedule: env.BACKUP_HOURLY_SCHEDULE });
-  }
-
-  const dailySchedule = env.BACKUP_DAILY_SCHEDULE || env.BACKUP_CRON_SCHEDULE;
-  if (dailySchedule) {
-    frequencies.push({ frequency: 'daily', schedule: dailySchedule });
-  }
-
-  if (env.BACKUP_WEEKLY_SCHEDULE) {
-    frequencies.push({ frequency: 'weekly', schedule: env.BACKUP_WEEKLY_SCHEDULE });
-  }
-
-  if (env.BACKUP_MONTHLY_SCHEDULE) {
-    frequencies.push({ frequency: 'monthly', schedule: env.BACKUP_MONTHLY_SCHEDULE });
-  }
-
-  return frequencies;
-}
+// Fixed cron schedules for all backup frequencies
+export const BACKUP_SCHEDULES: { frequency: BackupFrequency; schedule: string }[] = [
+  { frequency: 'hourly', schedule: '0 * * * *' },       // Every hour at :00
+  { frequency: 'daily', schedule: '0 0 * * *' },        // Every day at midnight
+  { frequency: 'weekly', schedule: '0 0 * * 0' },       // Every Sunday at midnight
+  { frequency: 'monthly', schedule: '0 0 1 * *' },      // 1st of every month at midnight
+];
 
 export function getMaxBackups(frequency: BackupFrequency): number {
   const map: Record<BackupFrequency, number> = {
