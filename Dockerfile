@@ -16,7 +16,7 @@ RUN npm ci && \
 
 FROM node:${NODE_VERSION}-alpine
 
-RUN apk add --no-cache curl && \
+RUN apk add --no-cache docker-cli curl && \
     SHOUTRRR_VERSION="0.8.0" && \
     curl -sSL "https://github.com/containrrr/shoutrrr/releases/download/v${SHOUTRRR_VERSION}/shoutrrr_linux_$(uname -m | sed 's/aarch64/arm64/' | sed 's/x86_64/amd64/').tar.gz" | tar xz -C /usr/local/bin shoutrrr && \
     apk del curl

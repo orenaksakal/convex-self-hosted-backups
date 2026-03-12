@@ -15,9 +15,9 @@ export const env = envsafe({
     allowEmpty: true,
   }),
 
-  // Multi-backend config: "name1::url1::adminKey1::dockerAppId1,name2::url2::adminKey2::dockerAppId2"
+  // Multi-backend config: "name1::url1::adminKey1::dockerContainer1,name2::url2::adminKey2::dockerContainer2"
   CONVEX_BACKENDS: str({
-    desc: 'Comma-separated backend configs: name::url::adminKey::dockerAppId (dockerAppId optional)',
+    desc: 'Comma-separated backend configs: name::url::adminKey::dockerContainer (dockerContainer optional)',
     default: '',
     allowEmpty: true,
   }),
@@ -93,13 +93,9 @@ export type BackendConfig = {
   name: string;
   url: string;
   adminKey: string;
-  dockerAppId?: string;
+  dockerContainer?: string;
 };
 
-export function getExportsPath(backend: BackendConfig): string | null {
-  if (!backend.dockerAppId) return null;
-  return `/var/lib/docker/volumes/${backend.dockerAppId}_data/_data/storage/exports`;
-}
 
 export type BackupFrequency = 'hourly' | 'daily' | 'weekly' | 'monthly';
 
@@ -108,13 +104,13 @@ export function parseBackends(): BackendConfig[] {
     return env.CONVEX_BACKENDS.split(',').map(entry => {
       const parts = entry.trim().split('::');
       if (parts.length < 3 || parts.length > 4) {
-        throw new Error(`Invalid CONVEX_BACKENDS entry: "${entry}". Expected format: name::url::adminKey::dockerAppId`);
+        throw new Error(`Invalid CONVEX_BACKENDS entry: "${entry}". Expected format: name::url::adminKey::dockerContainer`);
       }
       return {
         name: parts[0],
         url: parts[1],
         adminKey: parts[2],
-        dockerAppId: parts[3] || undefined,
+        dockerContainer: parts[3] || undefined,
       };
     });
   }

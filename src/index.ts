@@ -1,8 +1,7 @@
 import { CronJob } from "cron";
-import { readdirSync, unlinkSync, statSync, existsSync } from "fs";
-import path from "path";
+import { exec } from "child_process";
 import { backup } from "./backup.js";
-import { env, parseBackends, BACKUP_SCHEDULES, BackupFrequency, BackendConfig, getExportsPath } from "./env.js";
+import { env, parseBackends, BACKUP_SCHEDULES, BackupFrequency, BackendConfig } from "./env.js";
 import { sendFailureNotification } from "./notify.js";
 
 console.log("NodeJS Version: " + process.version);
@@ -23,37 +22,32 @@ const runBackupCycle = async (frequency: BackupFrequency) => {
       process.exit(1);
     }
 
-    cleanExports(backend);
+    await cleanExports(backend);
   }
 };
 
-const cleanExports = (backend: BackendConfig) => {
-  const exportsPath = getExportsPath(backend);
-  if (!exportsPath) {
-    console.log(`No dockerAppId configured for "${backend.name}", skipping export cleanup.`);
-    return;
-  }
-  if (!existsSync(exportsPath)) {
-    console.log(`Export path does not exist: ${exportsPath}`);
+const cleanExports = async (backend: BackendConfig) => {
+  if (!backend.dockerContainer) {
+    console.log(`No dockerContainer configured for "${backend.name}", skipping export cleanup.`);
     return;
   }
 
-  try {
-    const entries = readdirSync(exportsPath);
-    let deleted = 0;
-    for (const entry of entries) {
-      const fullPath = path.join(exportsPath, entry);
-      if (statSync(fullPath).isFile()) {
-        unlinkSync(fullPath);
-        deleted++;
+  const containerId = backend.dockerContainer;
+  const exportsPath = "/data/storage/exports";
+  const cmd = `docker exec ${containerId} sh -c 'rm -f ${exportsPath}/*'`;
+
+  console.log(`Cleaning exports for "${backend.name}" via docker exec...`);
+
+  await new Promise<void>((resolve) => {
+    exec(cmd, (error, _stdout, stderr) => {
+      if (error) {
+        console.error(`Error cleaning exports for "${backend.name}":`, stderr || error.message);
+      } else {
+        console.log(`Export cleanup complete for "${backend.name}".`);
       }
-    }
-    if (deleted > 0) {
-      console.log(`Cleaned up ${deleted} export file(s) from ${exportsPath} for "${backend.name}"`);
-    }
-  } catch (error) {
-    console.error(`Error cleaning exports for "${backend.name}":`, error);
-  }
+      resolve();
+    });
+  });
 };
 
 if (env.RUN_ON_STARTUP || env.SINGLE_SHOT_MODE) {
