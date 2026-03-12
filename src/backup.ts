@@ -140,7 +140,7 @@ const dumpToFile = async (
           CONVEX_SELF_HOSTED_ADMIN_KEY: backend.adminKey,
         },
       },
-      (error, stdout, stderr) => {
+      (error, _stdout, stderr) => {
         if (error) {
           reject(new Error(stderr.trimEnd() || error.message));
           return;

@@ -29,7 +29,14 @@ const runBackupCycle = async (frequency: BackupFrequency) => {
 
 const cleanExports = (backend: BackendConfig) => {
   const exportsPath = getExportsPath(backend);
-  if (!exportsPath || !existsSync(exportsPath)) return;
+  if (!exportsPath) {
+    console.log(`No dockerAppId configured for "${backend.name}", skipping export cleanup.`);
+    return;
+  }
+  if (!existsSync(exportsPath)) {
+    console.log(`Export path does not exist: ${exportsPath}`);
+    return;
+  }
 
   try {
     const entries = readdirSync(exportsPath);
