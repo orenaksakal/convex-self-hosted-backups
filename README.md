@@ -26,10 +26,10 @@ You can configure a single backend using legacy env vars, or multiple backends u
 | `CONVEX_SELF_HOSTED_URL` | No* | | API URL for your self-hosted instance. *Required if `CONVEX_BACKENDS` is not set. |
 | `CONVEX_URL` | No | | Alternative Convex URL. |
 
-**`CONVEX_BACKENDS` format:** `name|url|adminKey` per backend, comma-separated for multiple. The `name` is used as the S3 folder for that backend's backups.
+**`CONVEX_BACKENDS` format:** `name|url|adminKey|dockerAppId` per backend, comma-separated for multiple. The `name` is used as the S3 folder for that backend's backups. The `dockerAppId` is optional — when set, export files at `/var/lib/docker/volumes/{dockerAppId}_data/_data/storage/exports` are cleaned up after each backup.
 
 ```
-CONVEX_BACKENDS=my-app|https://my-app.convex.cloud|adminKey1,my-blog|https://my-blog.convex.cloud|adminKey2
+CONVEX_BACKENDS=my-app|https://my-app.convex.cloud|adminKey1|psw4400kc0808ok844sk8s84,my-blog|https://my-blog.convex.cloud|adminKey2|abc1234def5678
 ```
 
 For single-backend setups using legacy env vars, the folder name defaults to `BACKUP_FILE_PREFIX` (which defaults to `backup`).
@@ -105,7 +105,7 @@ Shoutrrr supports many other services (Discord, Slack, email, etc.) — see the 
 Back up two Convex instances with custom retention:
 
 ```env
-CONVEX_BACKENDS=my-app|https://my-app.convex.cloud|appAdminKey,my-blog|https://my-blog.convex.cloud|blogAdminKey
+CONVEX_BACKENDS=my-app|https://my-app.convex.cloud|appAdminKey|psw4400kc0808ok844sk8s84,my-blog|https://my-blog.convex.cloud|blogAdminKey|abc1234def5678
 
 MAX_HOURLY_BACKUPS=48
 MAX_DAILY_BACKUPS=14

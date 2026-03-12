@@ -15,9 +15,9 @@ export const env = envsafe({
     allowEmpty: true,
   }),
 
-  // Multi-backend config: "name1|url1|adminKey1,name2|url2|adminKey2"
+  // Multi-backend config: "name1|url1|adminKey1|dockerAppId1,name2|url2|adminKey2|dockerAppId2"
   CONVEX_BACKENDS: str({
-    desc: 'Comma-separated backend configs: name|url|adminKey',
+    desc: 'Comma-separated backend configs: name|url|adminKey|dockerAppId (dockerAppId optional)',
     default: '',
     allowEmpty: true,
   }),
@@ -93,7 +93,13 @@ export type BackendConfig = {
   name: string;
   url: string;
   adminKey: string;
+  dockerAppId?: string;
 };
+
+export function getExportsPath(backend: BackendConfig): string | null {
+  if (!backend.dockerAppId) return null;
+  return `/var/lib/docker/volumes/${backend.dockerAppId}_data/_data/storage/exports`;
+}
 
 export type BackupFrequency = 'hourly' | 'daily' | 'weekly' | 'monthly';
 
@@ -104,13 +110,27 @@ export function parseBackends(): BackendConfig[] {
       const firstPipe = trimmed.indexOf('|');
       const secondPipe = trimmed.indexOf('|', firstPipe + 1);
       if (firstPipe === -1 || secondPipe === -1) {
-        throw new Error(`Invalid CONVEX_BACKENDS entry: "${entry}". Expected format: name|url|adminKey`);
+        throw new Error(`Invalid CONVEX_BACKENDS entry: "${entry}". Expected format: name|url|adminKey|dataPath`);
       }
-      return {
-        name: trimmed.substring(0, firstPipe),
-        url: trimmed.substring(firstPipe + 1, secondPipe),
-        adminKey: trimmed.substring(secondPipe + 1),
-      };
+      const name = trimmed.substring(0, firstPipe);
+      const url = trimmed.substring(firstPipe + 1, secondPipe);
+      const rest = trimmed.substring(secondPipe + 1);
+
+      // Admin key contains exactly one | (e.g. "identifier|hexstring")
+      // If rest has 2 pipes, the last segment is the dockerAppId
+      const lastPipe = rest.lastIndexOf('|');
+      const secondLastPipe = lastPipe !== -1 ? rest.lastIndexOf('|', lastPipe - 1) : -1;
+
+      if (secondLastPipe !== -1) {
+        return {
+          name,
+          url,
+          adminKey: rest.substring(0, lastPipe),
+          dockerAppId: rest.substring(lastPipe + 1),
+        };
+      }
+
+      return { name, url, adminKey: rest };
     });
   }
 

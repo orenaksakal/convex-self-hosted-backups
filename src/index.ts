@@ -1,6 +1,8 @@
 import { CronJob } from "cron";
+import { readdirSync, unlinkSync, statSync, existsSync } from "fs";
+import path from "path";
 import { backup } from "./backup.js";
-import { env, parseBackends, BACKUP_SCHEDULES, BackupFrequency } from "./env.js";
+import { env, parseBackends, BACKUP_SCHEDULES, BackupFrequency, BackendConfig, getExportsPath } from "./env.js";
 import { sendFailureNotification } from "./notify.js";
 
 console.log("NodeJS Version: " + process.version);
@@ -20,6 +22,30 @@ const runBackupCycle = async (frequency: BackupFrequency) => {
       await sendFailureNotification(msg);
       process.exit(1);
     }
+
+    cleanExports(backend);
+  }
+};
+
+const cleanExports = (backend: BackendConfig) => {
+  const exportsPath = getExportsPath(backend);
+  if (!exportsPath || !existsSync(exportsPath)) return;
+
+  try {
+    const entries = readdirSync(exportsPath);
+    let deleted = 0;
+    for (const entry of entries) {
+      const fullPath = path.join(exportsPath, entry);
+      if (statSync(fullPath).isFile()) {
+        unlinkSync(fullPath);
+        deleted++;
+      }
+    }
+    if (deleted > 0) {
+      console.log(`Cleaned up ${deleted} export file(s) from ${exportsPath} for "${backend.name}"`);
+    }
+  } catch (error) {
+    console.error(`Error cleaning exports for "${backend.name}":`, error);
   }
 };
 
