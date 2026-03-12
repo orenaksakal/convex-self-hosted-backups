@@ -100,11 +100,17 @@ export type BackupFrequency = 'hourly' | 'daily' | 'weekly' | 'monthly';
 export function parseBackends(): BackendConfig[] {
   if (env.CONVEX_BACKENDS) {
     return env.CONVEX_BACKENDS.split(',').map(entry => {
-      const parts = entry.trim().split('|');
-      if (parts.length !== 3) {
+      const trimmed = entry.trim();
+      const firstPipe = trimmed.indexOf('|');
+      const secondPipe = trimmed.indexOf('|', firstPipe + 1);
+      if (firstPipe === -1 || secondPipe === -1) {
         throw new Error(`Invalid CONVEX_BACKENDS entry: "${entry}". Expected format: name|url|adminKey`);
       }
-      return { name: parts[0], url: parts[1], adminKey: parts[2] };
+      return {
+        name: trimmed.substring(0, firstPipe),
+        url: trimmed.substring(firstPipe + 1, secondPipe),
+        adminKey: trimmed.substring(secondPipe + 1),
+      };
     });
   }
 

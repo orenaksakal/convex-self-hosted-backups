@@ -180,7 +180,7 @@ export const backup = async (
 
   const date = new Date().toISOString();
   const timestamp = date.replace(/[:.]+/g, "-");
-  const filename = `${env.BACKUP_FILE_PREFIX}-${timestamp}.zip`;
+  const filename = `${backend.name}-${env.BACKUP_FILE_PREFIX}-${timestamp}.zip`;
   const filepath = path.join(os.tmpdir(), filename);
 
   const s3Key = buildS3Key(filename, backend.name, frequency);
