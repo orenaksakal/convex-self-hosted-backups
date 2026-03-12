@@ -15,9 +15,9 @@ export const env = envsafe({
     allowEmpty: true,
   }),
 
-  // Multi-backend config: "name1|url1|adminKey1|dockerAppId1,name2|url2|adminKey2|dockerAppId2"
+  // Multi-backend config: "name1::url1::adminKey1::dockerAppId1,name2::url2::adminKey2::dockerAppId2"
   CONVEX_BACKENDS: str({
-    desc: 'Comma-separated backend configs: name|url|adminKey|dockerAppId (dockerAppId optional)',
+    desc: 'Comma-separated backend configs: name::url::adminKey::dockerAppId (dockerAppId optional)',
     default: '',
     allowEmpty: true,
   }),
@@ -106,31 +106,16 @@ export type BackupFrequency = 'hourly' | 'daily' | 'weekly' | 'monthly';
 export function parseBackends(): BackendConfig[] {
   if (env.CONVEX_BACKENDS) {
     return env.CONVEX_BACKENDS.split(',').map(entry => {
-      const trimmed = entry.trim();
-      const firstPipe = trimmed.indexOf('|');
-      const secondPipe = trimmed.indexOf('|', firstPipe + 1);
-      if (firstPipe === -1 || secondPipe === -1) {
-        throw new Error(`Invalid CONVEX_BACKENDS entry: "${entry}". Expected format: name|url|adminKey|dataPath`);
+      const parts = entry.trim().split('::');
+      if (parts.length < 3 || parts.length > 4) {
+        throw new Error(`Invalid CONVEX_BACKENDS entry: "${entry}". Expected format: name::url::adminKey::dockerAppId`);
       }
-      const name = trimmed.substring(0, firstPipe);
-      const url = trimmed.substring(firstPipe + 1, secondPipe);
-      const rest = trimmed.substring(secondPipe + 1);
-
-      // Admin key contains exactly one | (e.g. "identifier|hexstring")
-      // If rest has 2 pipes, the last segment is the dockerAppId
-      const lastPipe = rest.lastIndexOf('|');
-      const secondLastPipe = lastPipe !== -1 ? rest.lastIndexOf('|', lastPipe - 1) : -1;
-
-      if (secondLastPipe !== -1) {
-        return {
-          name,
-          url,
-          adminKey: rest.substring(0, lastPipe),
-          dockerAppId: rest.substring(lastPipe + 1),
-        };
-      }
-
-      return { name, url, adminKey: rest };
+      return {
+        name: parts[0],
+        url: parts[1],
+        adminKey: parts[2],
+        dockerAppId: parts[3] || undefined,
+      };
     });
   }
 
