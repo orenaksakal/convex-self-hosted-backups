@@ -125,13 +125,36 @@ export function parseBackends(): BackendConfig[] {
   }];
 }
 
-// Fixed cron schedules for all backup frequencies
-export const BACKUP_SCHEDULES: { frequency: BackupFrequency; schedule: string }[] = [
-  { frequency: 'hourly', schedule: '0 * * * *' },       // Every hour at :00
-  { frequency: 'daily', schedule: '0 0 * * *' },        // Every day at midnight
-  { frequency: 'weekly', schedule: '0 0 * * 0' },       // Every Sunday at midnight
-  { frequency: 'monthly', schedule: '0 0 1 * *' },      // 1st of every month at midnight
-];
+// Generate randomized but non-overlapping cron schedules.
+// Each frequency gets a unique random minute (0-59) and hour (0-5) so backups never collide.
+function generateBackupSchedules(): { frequency: BackupFrequency; schedule: string }[] {
+  const usedSlots = new Set<string>();
+
+  const randomSlot = (): { minute: number; hour: number } => {
+    let minute: number, hour: number, key: string;
+    do {
+      minute = Math.floor(Math.random() * 60);
+      hour = Math.floor(Math.random() * 6); // early morning hours 0-5
+      key = `${hour}:${minute}`;
+    } while (usedSlots.has(key));
+    usedSlots.add(key);
+    return { minute, hour };
+  };
+
+  const hourlySlot = randomSlot();
+  const dailySlot = randomSlot();
+  const weeklySlot = randomSlot();
+  const monthlySlot = randomSlot();
+
+  return [
+    { frequency: 'hourly', schedule: `${hourlySlot.minute} * * * *` },
+    { frequency: 'daily', schedule: `${dailySlot.minute} ${dailySlot.hour} * * *` },
+    { frequency: 'weekly', schedule: `${weeklySlot.minute} ${weeklySlot.hour} * * 0` },
+    { frequency: 'monthly', schedule: `${monthlySlot.minute} ${monthlySlot.hour} 1 * *` },
+  ];
+}
+
+export const BACKUP_SCHEDULES = generateBackupSchedules();
 
 export function getMaxBackups(frequency: BackupFrequency): number {
   const map: Record<BackupFrequency, number> = {
